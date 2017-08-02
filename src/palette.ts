@@ -9,6 +9,7 @@ export class Palette {
     height: number;
 
     dishes: Dish[];
+    maxDishRadius: number;
 
     renderer: Renderer;
     pixelRatio: number;
@@ -24,6 +25,7 @@ export class Palette {
         this.pixelRatio = 2;
 
         this.dishes = [];
+        this.maxDishRadius = 500;
 
         this._dishDoms = [];
 
@@ -43,22 +45,43 @@ export class Palette {
      * @param height new canvas height
      */
     resize(width?: number, height?: number): void {
-        this.renderer.resize(width, height);
+        // Auto-detect width and height
+        width = width || this.renderer.canvas.width;
+        height = height || this.renderer.canvas.height;
 
-        this.width = this.renderer.width;
-        this.height = this.renderer.height;
+        this.renderer._resize(width, height);
+
+        if (width !== this.width || height !== this.height) {
+            // Update dish position when width or height changed
+            this.dishes.forEach(dish => {
+                const x = dish.x * <number>width / this.width;
+                const y = dish.y * <number>height / this.height;
+
+                if (dish.dom) {
+                    dish.dom.style.left = x / this.pixelRatio + 'px';
+                    dish.dom.style.top =
+                        (<number>height - y) / this.pixelRatio + 'px';
+                }
+
+                dish.move(x, y);
+            });
+
+            this.width = width;
+            this.height = height;
+        }
     }
 
     /**
      * Add a new dish to canvas
      *
-     * @param x x position
-     * @param y y position
+     * @param x x position to container
+     * @param y y position to container
      */
     addDish(x: number, y: number): void {
         const dish = new Dish(
             x * this.pixelRatio,
             this.height - y * this.pixelRatio,
+            Math.round((Math.random() * 0.5 + 0.5) * this.maxDishRadius),
             new Color(
                 Math.floor(Math.random() * 256),
                 Math.floor(Math.random() * 256),
@@ -85,7 +108,6 @@ export class Palette {
         dom.addEventListener('mousedown', () => {
             this._isMouseDown = true;
             this._activeDish = dish;
-                console.log('down');
         });
 
         if (this.canvas.parentNode) {
@@ -94,6 +116,13 @@ export class Palette {
         dish.dom = dom;
     }
 
+    /**
+     * Move dish to new position
+     *
+     * @param dish dish to be moved
+     * @param x x positoin to container
+     * @param y y positoin to container
+     */
     moveDish(dish: Dish, x: number, y: number): void {
         dish.move(
             x * this.pixelRatio,

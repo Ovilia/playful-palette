@@ -31,6 +31,13 @@
             var palette = new PP.Palette(canvas);
             var renderer = palette.renderer;
 
+            window.onresize = function () {
+                palette.resize(
+                    window.innerWidth * palette.pixelRatio,
+                    window.innerHeight * palette.pixelRatio
+                );
+            }
+
             var stat = new Stats();
             document.body.appendChild(stat.dom);
 

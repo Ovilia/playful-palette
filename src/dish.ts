@@ -3,10 +3,15 @@ import { Color } from './color';
 
 export class Dish {
 
-    public isDirty: boolean;
-    public dom?: HTMLDivElement;
+    isDirty: boolean;
+    dom?: HTMLDivElement;
 
-    constructor(public x: number, public y: number, public color: Color) {
+    constructor(
+        public x: number,
+        public y: number,
+        public radius: number,
+        public color: Color
+    ) {
         this.isDirty = true;
     }
 
@@ -15,6 +20,11 @@ export class Dish {
         this.x = x;
         this.y = y;
         this.isDirty = true;
+    }
+
+    setRadius(r: number): void {
+        this.radius = r;
+        this.isDirty;
     }
 
 }

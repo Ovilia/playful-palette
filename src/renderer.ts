@@ -16,8 +16,6 @@ export class Renderer {
     private _shaderProgram: WebGLShader;
     private _positionAttr: number;
     private _positionBuffer: WebGLBuffer | null;
-    // private _dishPositionAttr: WebGLUniformLocation;
-    // private _dishPositionBuffer: (WebGLBuffer | null);
 
     private _dishCount: number;
 
@@ -32,23 +30,6 @@ export class Renderer {
         this._initBuffers();
     }
 
-
-    /**
-     * Resize canvas width and height.
-     * If width or height is not given, it's implied that canvas has been
-     * resized outside, and only inner information should be changed.
-     *
-     * @param width new canvas width
-     * @param height new canvas height
-     */
-    resize(width?: number, height?: number): void {
-        if (width != null) {
-            this.canvas.width = width;
-        }
-        if (height != null) {
-            this.canvas.height = height;
-        }
-    }
 
     /**
      * Render a new frame.
@@ -108,6 +89,19 @@ export class Renderer {
     }
 
 
+    /**
+     * Resize canvas width and height.
+     * Note that this should NOT be called by user.
+     * Not palette is allowed to call this.
+     *
+     * @param width new canvas width
+     * @param height new canvas height
+     */
+    _resize(width: number, height: number): void {
+        this.width = this.canvas.width = width;
+        this.height = this.canvas.height = height;
+    }
+
     private _initGl(): void {
         try {
             this.gl = <WebGLRenderingContext>(
@@ -127,19 +121,17 @@ export class Renderer {
     private _initShaders(): void {
         const gl = this.gl;
 
-        const uDishStr = this._dishCount === 0
-            ? 'uniform vec2 uDishPos[1];' // Cannot create 0-length array
-            : `uniform vec2 uDishPos[${this._dishCount}];`;
-        const vDishStr = this._dishCount === 0
-            ? 'varying vec2 vDishPos[1];'
-            : `varying vec2 vDishPos[${this._dishCount}];`;
+        // Cannot create 0-length array
+        const dishArrLen = this._dishCount || 1;
 
-        const uDishColorStr = this._dishCount === 0
-            ? 'uniform vec3 uDishColor[1];'
-            : `uniform vec3 uDishColor[${this._dishCount}];`;
-        const vDishColorStr = this._dishCount === 0
-            ? 'varying vec3 vDishColor[1];'
-            : `varying vec3 vDishColor[${this._dishCount}];`;
+        const uDishStr = `uniform vec2 uDishPos[${dishArrLen}];`;
+        const vDishStr = `varying vec2 vDishPos[${dishArrLen}];`;
+
+        const uDishColorStr = `uniform vec3 uDishColor[${dishArrLen}];`;
+        const vDishColorStr = `varying vec3 vDishColor[${dishArrLen}];`;
+
+        const uDishRadiusStr = `uniform float uDishRadius[${dishArrLen}];`;
+        const vDishRadiusStr = `varying float vDishRadius[${dishArrLen}];`;
 
         const vertex = `
             attribute vec4 aPos;
@@ -151,6 +143,8 @@ export class Renderer {
             ${vDishStr}
             ${uDishColorStr}
             ${vDishColorStr}
+            ${uDishRadiusStr}
+            ${vDishRadiusStr}
 
             void main() {
                 vW = uW;
@@ -159,6 +153,7 @@ export class Renderer {
                 for (int i = 0; i < ${this._dishCount}; ++i) {
                     vDishPos[i] = uDishPos[i];
                     vDishColor[i] = uDishColor[i];
+                    vDishRadius[i] = uDishRadius[i];
                 }
 
                 gl_Position = aPos;
@@ -177,6 +172,7 @@ export class Renderer {
             varying float vDishCnt;
             ${vDishStr}
             ${vDishColorStr}
+            ${vDishRadiusStr}
 
             void main(void) {
                 const int dishCnt = ${this._dishCount};
@@ -186,7 +182,6 @@ export class Renderer {
                     return;
                 }
 
-                float r = 500.0;
                 float b2 = 0.25;
                 float b4 = b2 * b2;
                 float b6 = b4 * b2;
@@ -194,6 +189,7 @@ export class Renderer {
                 float influenceSum = 0.0;
                 vec3 colors = vec3(0.0, 0.0, 0.0);
                 for (int i = 0; i < dishCnt; ++i) {
+                    float r = vDishRadius[i];
                     vec2 pos = vDishPos[i];
                     float dx = pos.x - float(gl_FragCoord.x);
                     float dy = pos.y - float(gl_FragCoord.y);
@@ -277,12 +273,14 @@ export class Renderer {
 
         const dishPos: number[] = [];
         const dishColor: number[] = [];
+        const dishRadius: number[] = [];
         dishes.forEach(dish => {
             dishPos.push(dish.x);
             dishPos.push(dish.y);
             dishColor.push(dish.color.r / 256);
             dishColor.push(dish.color.g / 256);
             dishColor.push(dish.color.b / 256);
+            dishRadius.push(dish.radius);
         });
 
         const uPos =
@@ -293,9 +291,14 @@ export class Renderer {
 
         const uColor =
             gl.getUniformLocation(this._shaderProgram, 'uDishColor');
-        console.log(dishColor);
         if (uColor) {
             gl.uniform3fv(uColor, new Float32Array(dishColor));
+        }
+
+        const uRadius =
+            gl.getUniformLocation(this._shaderProgram, 'uDishRadius');
+        if (uRadius) {
+            gl.uniform1fv(uRadius, new Float32Array(dishRadius));
         }
     }
 
