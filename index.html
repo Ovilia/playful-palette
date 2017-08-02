@@ -1,0 +1,49 @@
+<!doctype>
+<html>
+    <head>
+        <style>
+            body {
+                margin: 0;
+            }
+
+            #container, #main {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="container">
+            <canvas id="main"></canvas>
+        </div>
+
+        <script src="examples/lib/stats.min.js"></script>
+        <script src="build/index.js"></script>
+        <script>
+            var canvas = document.getElementById('main');
+            canvas.width = window.innerWidth * 2;
+            canvas.height = window.innerHeight * 2;
+
+            var palette = new PP.Palette(canvas);
+            var renderer = palette.renderer;
+
+            var stat = new Stats();
+            document.body.appendChild(stat.dom);
+
+            function animate() {
+                stat.begin();
+
+                renderer.render(palette);
+
+                stat.end();
+
+                requestAnimationFrame(animate);
+            }
+            requestAnimationFrame(animate);
+        </script>
+    </body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "playful-palette",
+  "version": "1.0.0",
+  "description": "WebGL implementation of An Interactive Parametric Color Mixer for Artists",
+  "author": "Ovilia",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^8.0.16",
+    "script-loader": "^0.7.0",
+    "ts-loader": "^2.3.1",
+    "webpack": "^3.3.0"
+  }
+}
