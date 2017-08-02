@@ -149,14 +149,25 @@ export class Palette {
 
         parent.addEventListener('mousemove', event => {
             if (this._isMouseDown && this._activeDish) {
-                this.moveDish(this._activeDish, event.clientX, event.clientY);
+                var container = this.canvas.parentNode;
+                if (container) {
+                    const x = event.clientX - (<any>container).offsetLeft;
+                    const y = event.clientY - (<any>container).offsetTop;
+                    this.moveDish(this._activeDish, x, y);
+                }
                 this._isMouseMoved = true;
             }
         });
 
         parent.addEventListener('mouseup', event => {
+            console.log(event);
             if (this._isMouseDown && !this._isMouseMoved) {
-                this.addDish(event.clientX, event.clientY);
+                var container = this.canvas.parentNode;
+                if (container) {
+                    const x = event.clientX - (<any>container).offsetLeft;
+                    const y = event.clientY - (<any>container).offsetTop;
+                    this.addDish(x, y);
+                }
             }
 
             this._isMouseDown = false;
