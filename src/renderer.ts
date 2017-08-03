@@ -210,7 +210,7 @@ export class Renderer {
                     }
                 }
 
-                if (influenceSum < 0.2) {
+                if (influenceSum < 0.4) {
                     gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
                 }
                 else {

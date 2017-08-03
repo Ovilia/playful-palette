@@ -16,31 +16,19 @@
                 max-height: 100%;
                 border: 1px dashed #ccc;
             }
-
-            #main {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                height: 100%;
-            }
         </style>
     </head>
 
     <body>
         <div id="container">
-            <canvas id="main"></canvas>
         </div>
 
         <script src="examples/lib/stats.min.js"></script>
         <script src="build/index.js"></script>
         <script>
             var container = document.getElementById('container');
-            var canvas = document.getElementById('main');
-            canvas.width = container.clientWidth * 2;
-            canvas.height = container.clientHeight * 2;
 
-            var palette = new PP.Palette(canvas);
+            var palette = new PP.Palette(container);
             var renderer = palette.renderer;
 
             window.onresize = function () {

@@ -1,37 +1,69 @@
+import { Gui } from './gui';
 import { Color } from './color';
 import { Renderer } from './renderer';
 import { Dish } from './dish';
 
 
+const MAX_DISH_CNT = 7;
+const PALETTE_RADIUS_RATIO = 0.5;
+
 export class Palette {
 
     width: number;
     height: number;
+    canvas: HTMLCanvasElement;
 
     dishes: Dish[];
     maxDishRadius: number;
 
+    gui: Gui;
+
     renderer: Renderer;
     pixelRatio: number;
+
+    radius: number;
 
     private _isMouseDown: boolean;
     private _isMouseMoved: boolean;
     private _dishDoms: HTMLDivElement[];
     private _activeDish?: Dish;
 
-    constructor(public canvas: HTMLCanvasElement) {
-        this.width = canvas.width;
-        this.height = canvas.height;
+    constructor(public container: HTMLDivElement) {
         this.pixelRatio = 2;
 
+        if (!container.style.position || container.style.position === 'auto') {
+            container.style.position = 'absulute';
+        }
+
+        this.canvas = document.createElement('canvas');
+        this.canvas.width = container.offsetWidth * this.pixelRatio;
+        this.canvas.height = container.offsetHeight * this.pixelRatio;
+        container.appendChild(this.canvas);
+
+        const canvasStyle = `
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+        `;
+        this.canvas.setAttribute('style', canvasStyle);
+
+        this.width = this.canvas.width;
+        this.height = this.canvas.height;
+
+        this._updateRadius();
+
+        this.gui = new Gui(container);
+
         this.dishes = [];
-        this.maxDishRadius = 500;
+        this.maxDishRadius = 400;
 
         this._dishDoms = [];
 
         this._initEventHandle();
 
-        this.renderer = new Renderer(canvas);
+        this.renderer = new Renderer(this.canvas);
         this.renderer.render(this);
     }
 
@@ -50,6 +82,8 @@ export class Palette {
         height = height || this.renderer.canvas.height;
 
         this.renderer._resize(width, height);
+
+        this._updateRadius();
 
         if (width !== this.width || height !== this.height) {
             // Update dish position when width or height changed
@@ -76,8 +110,13 @@ export class Palette {
      *
      * @param x x position to container
      * @param y y position to container
+     * @return if succeed
      */
-    addDish(x: number, y: number): void {
+    addDish(x: number, y: number): boolean {
+        if (this.dishes.length >= MAX_DISH_CNT) {
+            return false;
+        }
+
         const dish = new Dish(
             x * this.pixelRatio,
             this.height - y * this.pixelRatio,
@@ -92,28 +131,27 @@ export class Palette {
 
         const dom = document.createElement('div');
         const style = `
-            border-radius: 50%;
-            width: 10px;
-            height: 10px;
-            background: #0ff;
-            margin-left: -5px;
-            margin-top: -5px;
-            position: absolute;
-            cursor: pointer;
             left: ${x}px;
             top: ${y}px;
         `;
         dom.setAttribute('style', style);
+        dom.setAttribute('class', 'dish-hint');
 
         dom.addEventListener('mousedown', () => {
             this._isMouseDown = true;
             this._activeDish = dish;
         });
 
-        if (this.canvas.parentNode) {
-            this.canvas.parentNode.appendChild(dom);
-        }
+        this.container.appendChild(dom);
         dish.dom = dom;
+        return true;
+    }
+
+    /**
+     * If can create another dish
+     */
+    canAddDish(): boolean {
+        return this.dishes.length < MAX_DISH_CNT;
     }
 
     /**
@@ -124,6 +162,19 @@ export class Palette {
      * @param y y positoin to container
      */
     moveDish(dish: Dish, x: number, y: number): void {
+        const x0 = this.width / this.pixelRatio / 2;
+        const y0 = this.height / this.pixelRatio / 2;
+        const d2 = (x - x0) * (x - x0) + (y - y0) * (y - y0);
+        const r = this.radius / this.pixelRatio;
+
+        if (d2 > r * r) {
+            console.log('out')
+            // Outside of the radius
+            const d = Math.sqrt(d2);
+            x = r / d * (x - x0) + x0;
+            y = r / d * (y - y0) + y0;
+        }
+
         dish.move(
             x * this.pixelRatio,
             this.height - y * this.pixelRatio
@@ -135,45 +186,53 @@ export class Palette {
         }
     }
 
+    /**
+     * Clear and empty all dishes
+     */
+    clearDishes(): void {
+        this.dishes.forEach(dish => {
+            // Remove from DOM
+            if (dish.dom) {
+                this.container.removeChild(dish.dom);
+            }
+        });
+        this.dishes = [];
+    }
+
+
     private _initEventHandle(): void {
         this._isMouseDown = false;
         this._isMouseMoved = false;
-        const parent = <HTMLDivElement>this.canvas.parentNode;
-        if (!parent) {
-            return;
-        }
 
-        parent.addEventListener('mousedown', () => {
+        this.container.addEventListener('mousedown', () => {
             this._isMouseDown = true;
         });
 
-        parent.addEventListener('mousemove', event => {
+        this.container.addEventListener('mousemove', event => {
             if (this._isMouseDown && this._activeDish) {
-                var container = this.canvas.parentNode;
-                if (container) {
-                    const x = event.clientX - (<any>container).offsetLeft;
-                    const y = event.clientY - (<any>container).offsetTop;
-                    this.moveDish(this._activeDish, x, y);
-                }
+                const x = event.clientX - this.container.offsetLeft;
+                const y = event.clientY - this.container.offsetTop;
+                this.moveDish(this._activeDish, x, y);
                 this._isMouseMoved = true;
             }
         });
 
-        parent.addEventListener('mouseup', event => {
-            console.log(event);
+        this.container.addEventListener('mouseup', event => {
             if (this._isMouseDown && !this._isMouseMoved) {
-                var container = this.canvas.parentNode;
-                if (container) {
-                    const x = event.clientX - (<any>container).offsetLeft;
-                    const y = event.clientY - (<any>container).offsetTop;
-                    this.addDish(x, y);
-                }
+                const x = event.clientX - this.container.offsetLeft;
+                const y = event.clientY - this.container.offsetTop;
+                this.addDish(x, y);
             }
 
             this._isMouseDown = false;
             this._isMouseMoved = false;
             this._activeDish = undefined;
         });
+    }
+
+    private _updateRadius(): void {
+        this.radius = Math.min(this.width, this.height) / 2
+            * PALETTE_RADIUS_RATIO;
     }
 
 }
