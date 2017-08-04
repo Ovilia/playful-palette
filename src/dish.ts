@@ -27,4 +27,8 @@ export class Dish {
         this.isDirty;
     }
 
+    clone(): Dish {
+        return new Dish(this.x, this.y, this.radius, this.color.clone());
+    }
+
 }

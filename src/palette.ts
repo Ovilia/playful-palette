@@ -1,4 +1,5 @@
-import { Gui } from './gui';
+import { History } from './history';
+import { Gui, GuiStatus } from './gui';
 import { Color } from './color';
 import { Renderer } from './renderer';
 import { Dish } from './dish';
@@ -17,6 +18,7 @@ export class Palette {
     maxDishRadius: number;
 
     gui: Gui;
+    history: History;
 
     renderer: Renderer;
     pixelRatio: number;
@@ -55,6 +57,7 @@ export class Palette {
         this._updateRadius();
 
         this.gui = new Gui(container);
+        this.history = new History();
 
         this.dishes = [];
         this.maxDishRadius = 400;
@@ -117,6 +120,13 @@ export class Palette {
             return false;
         }
 
+        const dx = x * this.pixelRatio - this.width / 2;
+        const dy = y * this.pixelRatio - this.height / 2;
+        if (dx * dx + dy * dy > this.radius * this.radius) {
+            // Outside
+            return false;
+        }
+
         const dish = new Dish(
             x * this.pixelRatio,
             this.height - y * this.pixelRatio,
@@ -128,6 +138,8 @@ export class Palette {
             )
         );
         this.dishes.push(dish);
+
+        this.gui.updateCurrentColor(dish.color);
 
         const dom = document.createElement('div');
         const style = `
@@ -168,7 +180,6 @@ export class Palette {
         const r = this.radius / this.pixelRatio;
 
         if (d2 > r * r) {
-            console.log('out')
             // Outside of the radius
             const d = Math.sqrt(d2);
             x = r / d * (x - x0) + x0;
@@ -199,6 +210,27 @@ export class Palette {
         this.dishes = [];
     }
 
+    pickColor(x: number, y: number): Color | null {
+        x *= this.pixelRatio;
+        y *= this.pixelRatio;
+        return this.renderer.getColor(x, y, this);
+    }
+
+    useColor(x: number, y: number): Color | null {
+        const color = this.pickColor(x, y);
+        if (color) {
+            this.history.addRecord(
+                this.dishes,
+                x / this.width,
+                y / this.height,
+                color
+            );
+            return color;
+        }
+        else {
+            return null;
+        }
+    }
 
     private _initEventHandle(): void {
         this._isMouseDown = false;
@@ -209,19 +241,30 @@ export class Palette {
         });
 
         this.container.addEventListener('mousemove', event => {
+            const x = event.clientX - this.container.offsetLeft;
+            const y = event.clientY - this.container.offsetTop;
             if (this._isMouseDown && this._activeDish) {
-                const x = event.clientX - this.container.offsetLeft;
-                const y = event.clientY - this.container.offsetTop;
                 this.moveDish(this._activeDish, x, y);
                 this._isMouseMoved = true;
+            }
+            if (this.gui.status === GuiStatus.PICK) {
+                this.gui.updateCurrentColor(
+                    this.pickColor(x, y)
+                );
             }
         });
 
         this.container.addEventListener('mouseup', event => {
-            if (this._isMouseDown && !this._isMouseMoved) {
+            if (this._isMouseDown && !this._isMouseMoved
+            ) {
                 const x = event.clientX - this.container.offsetLeft;
                 const y = event.clientY - this.container.offsetTop;
-                this.addDish(x, y);
+                if (this.gui.status === GuiStatus.ADD) {
+                    this.addDish(x, y);
+                }
+                else if (this.gui.status === GuiStatus.PICK) {
+                    this.useColor(x, y);
+                }
             }
 
             this._isMouseDown = false;

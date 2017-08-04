@@ -1,3 +1,4 @@
+import { Color } from './color';
 import { Dish } from './dish';
 import { Palette } from './palette';
 
@@ -86,6 +87,27 @@ export class Renderer {
             this.afterRender();
         }
 
+    }
+
+    /**
+     * Get color of a given canvas position
+     *
+     * @param x x position
+     * @param y y position
+     */
+    getColor(x: number, y: number, palette: Palette): Color | null {
+        this.render(palette);
+
+        const data = new Uint8Array(4);
+        this.gl.readPixels(x, this.canvas.height - y, 1, 1, this.gl.RGBA,
+            this.gl.UNSIGNED_BYTE, data);
+
+        if (data[3] === 0) {
+            return null;
+        }
+        else {
+            return new Color(data[0], data[1], data[2]);
+        }
     }
 
 
