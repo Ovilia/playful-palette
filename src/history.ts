@@ -1,5 +1,5 @@
 import { Color } from './color';
-import { Dish } from './dish';
+import { Blob } from './blob';
 
 
 export class HistoryRecord {
@@ -21,11 +21,11 @@ export class HistoryRecord {
 export class HistorySnapshot {
 
     records: HistoryRecord[];
-    dishes: Dish[];
+    blobs: Blob[];
 
-    constructor(dishes: Dish[]) {
+    constructor(blobs: Blob[]) {
         this.records = [];
-        this.dishes = dishes.map(dish => dish.clone());
+        this.blobs = blobs.map(blob => blob.clone());
     }
 
 }
@@ -34,35 +34,35 @@ export class HistorySnapshot {
 export class History {
 
     snapshots: HistorySnapshot[];
-    lastDishes: Dish[];
+    lastBlobes: Blob[];
 
     constructor() {
         this.snapshots = [];
-        this.lastDishes = [];
+        this.lastBlobes = [];
     }
 
-    addRecord(dishes: Dish[], x: number, y: number, color: Color) {
-        if (this.areDishesChangedSufficiently(this.lastDishes, dishes)) {
-            const snapshot = new HistorySnapshot(dishes);
+    addRecord(blobs: Blob[], x: number, y: number, color: Color) {
+        if (this.areBlobesChangedSufficiently(this.lastBlobes, blobs)) {
+            const snapshot = new HistorySnapshot(blobs);
 
             snapshot.records.push(new HistoryRecord(x, y, color));
 
             this.snapshots.push(snapshot);
-            this.lastDishes = snapshot.dishes;
+            this.lastBlobes = snapshot.blobs;
         }
     }
 
-    createNewSnapshot(dishes: Dish[]) {
-        this.snapshots.push(new HistorySnapshot(dishes));
+    createNewSnapshot(blobs: Blob[]) {
+        this.snapshots.push(new HistorySnapshot(blobs));
     }
 
-    areDishesChangedSufficiently(aDishes: Dish[], bDishes: Dish[]) {
-        if (aDishes.length !== bDishes.length) {
+    areBlobesChangedSufficiently(aBlobes: Blob[], bBlobes: Blob[]) {
+        if (aBlobes.length !== bBlobes.length) {
             return true;
         }
 
-        for (let len = aDishes.length, i = 0; i < len; ++i) {
-            if (aDishes[i].color.distance(bDishes[i].color) > 0.2) {
+        for (let len = aBlobes.length, i = 0; i < len; ++i) {
+            if (aBlobes[i].color.distance(bBlobes[i].color) > 0.2) {
                 return true;
             }
         }

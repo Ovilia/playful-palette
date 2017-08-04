@@ -87,7 +87,7 @@ export class Gui {
                     right: ${padding};
                 }
 
-            .dish-hint {
+            .blob-hint {
                 display: none;
                 position: absolute;
                 width: 10px;
@@ -99,7 +99,7 @@ export class Gui {
                 cursor: move;
             }
 
-                .pp-move .dish-hint {
+                .pp-move .blob-hint {
                     display: block;
                 }
         `;

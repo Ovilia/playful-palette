@@ -1,7 +1,7 @@
 import { Color } from './color';
 
 
-export class Dish {
+export class Blob {
 
     isDirty: boolean;
     dom?: HTMLDivElement;
@@ -27,8 +27,8 @@ export class Dish {
         this.isDirty;
     }
 
-    clone(): Dish {
-        return new Dish(this.x, this.y, this.radius, this.color.clone());
+    clone(): Blob {
+        return new Blob(this.x, this.y, this.radius, this.color.clone());
     }
 
 }

@@ -1,5 +1,5 @@
 import { Color } from './color';
-import { Dish } from './dish';
+import { Blob } from './blob';
 import { Palette } from './palette';
 
 
@@ -18,13 +18,13 @@ export class Renderer {
     private _positionAttr: number;
     private _positionBuffer: WebGLBuffer | null;
 
-    private _dishCount: number;
+    private _blobCount: number;
 
     constructor(public canvas: HTMLCanvasElement) {
         this.width = canvas.width;
         this.height = canvas.height;
 
-        this._dishCount = 0;
+        this._blobCount = 0;
 
         this._initGl();
         this._initShaders();
@@ -51,15 +51,15 @@ export class Renderer {
 
         gl.useProgram(this._shaderProgram);
 
-        if (palette.dishes.length !== this._dishCount
-            || palette.dishes.some(dish => dish.isDirty)
+        if (palette.blobs.length !== this._blobCount
+            || palette.blobs.some(blob => blob.isDirty)
         ) {
-            // Rebuild shader when dish number changes
-            this._dishCount = palette.dishes.length;
+            // Rebuild shader when blob number changes
+            this._blobCount = palette.blobs.length;
             this._initShaders();
-            this._initDishBuffers(palette.dishes);
+            this._initBlobBuffers(palette.blobs);
 
-            palette.dishes.forEach(dish => dish.isDirty = false);
+            palette.blobs.forEach(blob => blob.isDirty = false);
         }
 
         // Window width and height as uniform
@@ -144,16 +144,16 @@ export class Renderer {
         const gl = this.gl;
 
         // Cannot create 0-length array
-        const dishArrLen = this._dishCount || 1;
+        const blobArrLen = this._blobCount || 1;
 
-        const uDishStr = `uniform vec2 uDishPos[${dishArrLen}];`;
-        const vDishStr = `varying vec2 vDishPos[${dishArrLen}];`;
+        const uBlobStr = `uniform vec2 uBlobPos[${blobArrLen}];`;
+        const vBlobStr = `varying vec2 vBlobPos[${blobArrLen}];`;
 
-        const uDishColorStr = `uniform vec3 uDishColor[${dishArrLen}];`;
-        const vDishColorStr = `varying vec3 vDishColor[${dishArrLen}];`;
+        const uBlobColorStr = `uniform vec3 uBlobColor[${blobArrLen}];`;
+        const vBlobColorStr = `varying vec3 vBlobColor[${blobArrLen}];`;
 
-        const uDishRadiusStr = `uniform float uDishRadius[${dishArrLen}];`;
-        const vDishRadiusStr = `varying float vDishRadius[${dishArrLen}];`;
+        const uBlobRadiusStr = `uniform float uBlobRadius[${blobArrLen}];`;
+        const vBlobRadiusStr = `varying float vBlobRadius[${blobArrLen}];`;
 
         const vertex = `
             attribute vec4 aPos;
@@ -161,21 +161,21 @@ export class Renderer {
             uniform float uH;
             varying float vW;
             varying float vH;
-            ${uDishStr}
-            ${vDishStr}
-            ${uDishColorStr}
-            ${vDishColorStr}
-            ${uDishRadiusStr}
-            ${vDishRadiusStr}
+            ${uBlobStr}
+            ${vBlobStr}
+            ${uBlobColorStr}
+            ${vBlobColorStr}
+            ${uBlobRadiusStr}
+            ${vBlobRadiusStr}
 
             void main() {
                 vW = uW;
                 vH = uH;
 
-                for (int i = 0; i < ${this._dishCount}; ++i) {
-                    vDishPos[i] = uDishPos[i];
-                    vDishColor[i] = uDishColor[i];
-                    vDishRadius[i] = uDishRadius[i];
+                for (int i = 0; i < ${this._blobCount}; ++i) {
+                    vBlobPos[i] = uBlobPos[i];
+                    vBlobColor[i] = uBlobColor[i];
+                    vBlobRadius[i] = uBlobRadius[i];
                 }
 
                 gl_Position = aPos;
@@ -191,15 +191,15 @@ export class Renderer {
             precision highp float;
             varying float vW;
             varying float vH;
-            varying float vDishCnt;
-            ${vDishStr}
-            ${vDishColorStr}
-            ${vDishRadiusStr}
+            varying float vBlobCnt;
+            ${vBlobStr}
+            ${vBlobColorStr}
+            ${vBlobRadiusStr}
 
             void main(void) {
-                const int dishCnt = ${this._dishCount};
+                const int blobCnt = ${this._blobCount};
 
-                if (dishCnt == 0) {
+                if (blobCnt == 0) {
                     gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
                     return;
                 }
@@ -210,9 +210,9 @@ export class Renderer {
 
                 float influenceSum = 0.0;
                 vec3 colors = vec3(0.0, 0.0, 0.0);
-                for (int i = 0; i < dishCnt; ++i) {
-                    float r = vDishRadius[i];
-                    vec2 pos = vDishPos[i];
+                for (int i = 0; i < blobCnt; ++i) {
+                    float r = vBlobRadius[i];
+                    vec2 pos = vBlobPos[i];
                     float dx = pos.x - float(gl_FragCoord.x);
                     float dy = pos.y - float(gl_FragCoord.y);
                     float d2 = (dx * dx + dy * dy) / r / r;
@@ -226,7 +226,7 @@ export class Renderer {
                             continue;
                         }
 
-                        colors = colors + vDishColor[i] * influence;
+                        colors = colors + vBlobColor[i] * influence;
 
                         influenceSum += influence;
                     }
@@ -290,37 +290,37 @@ export class Renderer {
             gl.STATIC_DRAW);
     }
 
-    private _initDishBuffers(dishes: Dish[]): void {
+    private _initBlobBuffers(blobs: Blob[]): void {
         const gl = this.gl;
 
-        const dishPos: number[] = [];
-        const dishColor: number[] = [];
-        const dishRadius: number[] = [];
-        dishes.forEach(dish => {
-            dishPos.push(dish.x);
-            dishPos.push(dish.y);
-            dishColor.push(dish.color.r / 256);
-            dishColor.push(dish.color.g / 256);
-            dishColor.push(dish.color.b / 256);
-            dishRadius.push(dish.radius);
+        const blobPos: number[] = [];
+        const blobColor: number[] = [];
+        const blobRadius: number[] = [];
+        blobs.forEach(blob => {
+            blobPos.push(blob.x);
+            blobPos.push(blob.y);
+            blobColor.push(blob.color.r / 256);
+            blobColor.push(blob.color.g / 256);
+            blobColor.push(blob.color.b / 256);
+            blobRadius.push(blob.radius);
         });
 
         const uPos =
-            gl.getUniformLocation(this._shaderProgram, 'uDishPos');
+            gl.getUniformLocation(this._shaderProgram, 'uBlobPos');
         if (uPos) {
-            gl.uniform2fv(uPos, new Float32Array(dishPos));
+            gl.uniform2fv(uPos, new Float32Array(blobPos));
         }
 
         const uColor =
-            gl.getUniformLocation(this._shaderProgram, 'uDishColor');
+            gl.getUniformLocation(this._shaderProgram, 'uBlobColor');
         if (uColor) {
-            gl.uniform3fv(uColor, new Float32Array(dishColor));
+            gl.uniform3fv(uColor, new Float32Array(blobColor));
         }
 
         const uRadius =
-            gl.getUniformLocation(this._shaderProgram, 'uDishRadius');
+            gl.getUniformLocation(this._shaderProgram, 'uBlobRadius');
         if (uRadius) {
-            gl.uniform1fv(uRadius, new Float32Array(dishRadius));
+            gl.uniform1fv(uRadius, new Float32Array(blobRadius));
         }
     }
 

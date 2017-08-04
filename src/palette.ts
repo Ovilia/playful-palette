@@ -2,7 +2,7 @@ import { History } from './history';
 import { Gui, GuiStatus } from './gui';
 import { Color } from './color';
 import { Renderer } from './renderer';
-import { Dish } from './dish';
+import { Blob } from './blob';
 
 
 const MAX_DISH_CNT = 7;
@@ -14,8 +14,8 @@ export class Palette {
     height: number;
     canvas: HTMLCanvasElement;
 
-    dishes: Dish[];
-    maxDishRadius: number;
+    blobs: Blob[];
+    maxBlobRadius: number;
 
     gui: Gui;
     history: History;
@@ -27,8 +27,8 @@ export class Palette {
 
     private _isMouseDown: boolean;
     private _isMouseMoved: boolean;
-    private _dishDoms: HTMLDivElement[];
-    private _activeDish?: Dish;
+    private _blobDoms: HTMLDivElement[];
+    private _activeBlob?: Blob;
 
     constructor(public container: HTMLDivElement) {
         this.pixelRatio = 2;
@@ -59,10 +59,10 @@ export class Palette {
         this.gui = new Gui(container);
         this.history = new History();
 
-        this.dishes = [];
-        this.maxDishRadius = 400;
+        this.blobs = [];
+        this.maxBlobRadius = 400;
 
-        this._dishDoms = [];
+        this._blobDoms = [];
 
         this._initEventHandle();
 
@@ -89,18 +89,18 @@ export class Palette {
         this._updateRadius();
 
         if (width !== this.width || height !== this.height) {
-            // Update dish position when width or height changed
-            this.dishes.forEach(dish => {
-                const x = dish.x * <number>width / this.width;
-                const y = dish.y * <number>height / this.height;
+            // Update blob position when width or height changed
+            this.blobs.forEach(blob => {
+                const x = blob.x * <number>width / this.width;
+                const y = blob.y * <number>height / this.height;
 
-                if (dish.dom) {
-                    dish.dom.style.left = x / this.pixelRatio + 'px';
-                    dish.dom.style.top =
+                if (blob.dom) {
+                    blob.dom.style.left = x / this.pixelRatio + 'px';
+                    blob.dom.style.top =
                         (<number>height - y) / this.pixelRatio + 'px';
                 }
 
-                dish.move(x, y);
+                blob.move(x, y);
             });
 
             this.width = width;
@@ -109,14 +109,14 @@ export class Palette {
     }
 
     /**
-     * Add a new dish to canvas
+     * Add a new blob to canvas
      *
      * @param x x position to container
      * @param y y position to container
      * @return if succeed
      */
-    addDish(x: number, y: number): boolean {
-        if (this.dishes.length >= MAX_DISH_CNT) {
+    addBlob(x: number, y: number): boolean {
+        if (this.blobs.length >= MAX_DISH_CNT) {
             return false;
         }
 
@@ -127,19 +127,19 @@ export class Palette {
             return false;
         }
 
-        const dish = new Dish(
+        const blob = new Blob(
             x * this.pixelRatio,
             this.height - y * this.pixelRatio,
-            Math.round((Math.random() * 0.5 + 0.5) * this.maxDishRadius),
+            Math.round((Math.random() * 0.5 + 0.5) * this.maxBlobRadius),
             new Color(
                 Math.floor(Math.random() * 256),
                 Math.floor(Math.random() * 256),
                 Math.floor(Math.random() * 256)
             )
         );
-        this.dishes.push(dish);
+        this.blobs.push(blob);
 
-        this.gui.updateCurrentColor(dish.color);
+        this.gui.updateCurrentColor(blob.color);
 
         const dom = document.createElement('div');
         const style = `
@@ -147,33 +147,33 @@ export class Palette {
             top: ${y}px;
         `;
         dom.setAttribute('style', style);
-        dom.setAttribute('class', 'dish-hint');
+        dom.setAttribute('class', 'blob-hint');
 
         dom.addEventListener('mousedown', () => {
             this._isMouseDown = true;
-            this._activeDish = dish;
+            this._activeBlob = blob;
         });
 
         this.container.appendChild(dom);
-        dish.dom = dom;
+        blob.dom = dom;
         return true;
     }
 
     /**
-     * If can create another dish
+     * If can create another blob
      */
-    canAddDish(): boolean {
-        return this.dishes.length < MAX_DISH_CNT;
+    canAddBlob(): boolean {
+        return this.blobs.length < MAX_DISH_CNT;
     }
 
     /**
-     * Move dish to new position
+     * Move blob to new position
      *
-     * @param dish dish to be moved
+     * @param blob blob to be moved
      * @param x x positoin to container
      * @param y y positoin to container
      */
-    moveDish(dish: Dish, x: number, y: number): void {
+    moveBlob(blob: Blob, x: number, y: number): void {
         const x0 = this.width / this.pixelRatio / 2;
         const y0 = this.height / this.pixelRatio / 2;
         const d2 = (x - x0) * (x - x0) + (y - y0) * (y - y0);
@@ -186,28 +186,28 @@ export class Palette {
             y = r / d * (y - y0) + y0;
         }
 
-        dish.move(
+        blob.move(
             x * this.pixelRatio,
             this.height - y * this.pixelRatio
         );
 
-        if (dish.dom) {
-            dish.dom.style.left = x + 'px';
-            dish.dom.style.top = y + 'px';
+        if (blob.dom) {
+            blob.dom.style.left = x + 'px';
+            blob.dom.style.top = y + 'px';
         }
     }
 
     /**
-     * Clear and empty all dishes
+     * Clear and empty all blobs
      */
-    clearDishes(): void {
-        this.dishes.forEach(dish => {
+    clearBlobes(): void {
+        this.blobs.forEach(blob => {
             // Remove from DOM
-            if (dish.dom) {
-                this.container.removeChild(dish.dom);
+            if (blob.dom) {
+                this.container.removeChild(blob.dom);
             }
         });
-        this.dishes = [];
+        this.blobs = [];
     }
 
     pickColor(x: number, y: number): Color | null {
@@ -220,7 +220,7 @@ export class Palette {
         const color = this.pickColor(x, y);
         if (color) {
             this.history.addRecord(
-                this.dishes,
+                this.blobs,
                 x / this.width,
                 y / this.height,
                 color
@@ -243,8 +243,8 @@ export class Palette {
         this.container.addEventListener('mousemove', event => {
             const x = event.clientX - this.container.offsetLeft;
             const y = event.clientY - this.container.offsetTop;
-            if (this._isMouseDown && this._activeDish) {
-                this.moveDish(this._activeDish, x, y);
+            if (this._isMouseDown && this._activeBlob) {
+                this.moveBlob(this._activeBlob, x, y);
                 this._isMouseMoved = true;
             }
             if (this.gui.status === GuiStatus.PICK) {
@@ -260,7 +260,7 @@ export class Palette {
                 const x = event.clientX - this.container.offsetLeft;
                 const y = event.clientY - this.container.offsetTop;
                 if (this.gui.status === GuiStatus.ADD) {
-                    this.addDish(x, y);
+                    this.addBlob(x, y);
                 }
                 else if (this.gui.status === GuiStatus.PICK) {
                     this.useColor(x, y);
@@ -269,7 +269,7 @@ export class Palette {
 
             this._isMouseDown = false;
             this._isMouseMoved = false;
-            this._activeDish = undefined;
+            this._activeBlob = undefined;
         });
     }
 
