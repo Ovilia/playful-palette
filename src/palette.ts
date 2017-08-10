@@ -193,7 +193,6 @@ export class Palette {
     useColor(x: number, y: number): Color | null {
         const color = this.pickColor(x, y);
         if (color) {
-            console.log('use color', color.toHex());
             this.history.addRecord(
                 this.blobs,
                 x / this.width,

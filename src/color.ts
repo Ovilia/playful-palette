@@ -53,7 +53,6 @@ export class Color {
             hue += 360;
         }
 
-        console.log(r, g, b, hue);
         return hue;
     }
 

@@ -83,47 +83,43 @@ export class Gui {
         }
 
         const id = this._getColorInsertIndex(color);
-        console.log(id)
 
         const cnt = this._usedColors.length + 1;
-        // if (cnt <= FULL_WHEEL_SIZE) {
-            // Wheel is not full
-            this._usedColors.forEach((color, i) => {
-                // New id after insert new color
-                const colorId = i < id ? i : i + 1;
-                const d = getPath(
-                    this.wheelOutterRadius,
-                    this.wheelOutterRadius,
-                    colorId,
-                    cnt,
-                    MAX_WHEEL_RADIAN,
-                    this.wheelInnerRadius,
-                    this.wheelOutterRadius
-                );
-
-                const path = this._usedColorDoms[i];
-                path.setAttribute('d', d);
-                path.setAttribute('fill', color.toHex());
-            });
-
-            // Create new color in wheel
-            const path = document.createElementNS(SVG_URI, 'path');
+        this._usedColors.forEach((color, i) => {
+            // New id after insert new color
+            const colorId = i < id ? i : i + 1;
             const d = getPath(
                 this.wheelOutterRadius,
                 this.wheelOutterRadius,
-                id,
+                colorId,
                 cnt,
                 MAX_WHEEL_RADIAN,
                 this.wheelInnerRadius,
                 this.wheelOutterRadius
             );
+
+            const path = this._usedColorDoms[i];
             path.setAttribute('d', d);
             path.setAttribute('fill', color.toHex());
+        });
 
-            this._wheelDom.appendChild(path);
-            this._usedColorDoms.push(path);
-            this._usedColors.push(color);
-        // }
+        // Create new color in wheel
+        const path = document.createElementNS(SVG_URI, 'path');
+        const d = getPath(
+            this.wheelOutterRadius,
+            this.wheelOutterRadius,
+            id,
+            cnt,
+            MAX_WHEEL_RADIAN,
+            this.wheelInnerRadius,
+            this.wheelOutterRadius
+        );
+        path.setAttribute('d', d);
+        path.setAttribute('fill', color.toHex());
+
+        this._wheelDom.appendChild(path);
+        this._usedColorDoms.splice(id, 0, path);
+        this._usedColors.splice(id, 0, color);
     }
 
     addBlob(blob: Blob, x: number, y: number): HTMLDivElement {
