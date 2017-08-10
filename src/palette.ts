@@ -1,12 +1,12 @@
 import { History } from './history';
-import { Gui, GuiStatus } from './gui';
+import { Gui } from './gui';
 import { Color } from './color';
 import { Renderer } from './renderer';
 import { Blob } from './blob';
 
 
 const MAX_DISH_CNT = 7;
-const PALETTE_RADIUS_RATIO = 0.5;
+const PALETTE_RADIUS_RATIO = 0.7;
 
 export class Palette {
 
@@ -25,11 +25,6 @@ export class Palette {
 
     radius: number;
 
-    private _isMouseDown: boolean;
-    private _isMouseMoved: boolean;
-    private _blobDoms: HTMLDivElement[];
-    private _activeBlob?: Blob;
-
     constructor(public container: HTMLDivElement) {
         this.pixelRatio = 2;
 
@@ -42,29 +37,18 @@ export class Palette {
         this.canvas.height = container.offsetHeight * this.pixelRatio;
         container.appendChild(this.canvas);
 
-        const canvasStyle = `
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-        `;
-        this.canvas.setAttribute('style', canvasStyle);
+        this.canvas.setAttribute('class', 'pp-main-canvas');
 
         this.width = this.canvas.width;
         this.height = this.canvas.height;
 
         this._updateRadius();
 
-        this.gui = new Gui(container);
+        this.gui = new Gui(this, container, this.radius / this.pixelRatio);
         this.history = new History();
 
         this.blobs = [];
         this.maxBlobRadius = 400;
-
-        this._blobDoms = [];
-
-        this._initEventHandle();
 
         this.renderer = new Renderer(this.canvas);
         this.renderer.render(this);
@@ -132,30 +116,20 @@ export class Palette {
             this.height - y * this.pixelRatio,
             Math.round((Math.random() * 0.5 + 0.5) * this.maxBlobRadius),
             new Color(
-                Math.floor(Math.random() * 256),
-                Math.floor(Math.random() * 256),
-                Math.floor(Math.random() * 256)
+                this.blobs.length === 0 ? 255 : 0,
+                this.blobs.length === 1 ? 255 : 0,
+                this.blobs.length === 2 ? 255 : 0
+
+                // Math.floor(Math.random() * 256),
+                // Math.floor(Math.random() * 256),
+                // Math.floor(Math.random() * 256)
             )
         );
         this.blobs.push(blob);
 
         this.gui.updateCurrentColor(blob.color);
 
-        const dom = document.createElement('div');
-        const style = `
-            left: ${x}px;
-            top: ${y}px;
-        `;
-        dom.setAttribute('style', style);
-        dom.setAttribute('class', 'blob-hint');
-
-        dom.addEventListener('mousedown', () => {
-            this._isMouseDown = true;
-            this._activeBlob = blob;
-        });
-
-        this.container.appendChild(dom);
-        blob.dom = dom;
+        blob.dom = this.gui.addBlob(blob, x, y);
         return true;
     }
 
@@ -219,58 +193,20 @@ export class Palette {
     useColor(x: number, y: number): Color | null {
         const color = this.pickColor(x, y);
         if (color) {
+            console.log('use color', color.toHex());
             this.history.addRecord(
                 this.blobs,
                 x / this.width,
                 y / this.height,
                 color
             );
+            this.gui.useColor(color);
             return color;
         }
         else {
+            console.log('use color null');
             return null;
         }
-    }
-
-    private _initEventHandle(): void {
-        this._isMouseDown = false;
-        this._isMouseMoved = false;
-
-        this.container.addEventListener('mousedown', () => {
-            this._isMouseDown = true;
-        });
-
-        this.container.addEventListener('mousemove', event => {
-            const x = event.clientX - this.container.offsetLeft;
-            const y = event.clientY - this.container.offsetTop;
-            if (this._isMouseDown && this._activeBlob) {
-                this.moveBlob(this._activeBlob, x, y);
-                this._isMouseMoved = true;
-            }
-            if (this.gui.status === GuiStatus.PICK) {
-                this.gui.updateCurrentColor(
-                    this.pickColor(x, y)
-                );
-            }
-        });
-
-        this.container.addEventListener('mouseup', event => {
-            if (this._isMouseDown && !this._isMouseMoved
-            ) {
-                const x = event.clientX - this.container.offsetLeft;
-                const y = event.clientY - this.container.offsetTop;
-                if (this.gui.status === GuiStatus.ADD) {
-                    this.addBlob(x, y);
-                }
-                else if (this.gui.status === GuiStatus.PICK) {
-                    this.useColor(x, y);
-                }
-            }
-
-            this._isMouseDown = false;
-            this._isMouseMoved = false;
-            this._activeBlob = undefined;
-        });
     }
 
     private _updateRadius(): void {

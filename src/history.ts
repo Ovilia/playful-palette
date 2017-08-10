@@ -20,12 +20,18 @@ export class HistoryRecord {
 
 export class HistorySnapshot {
 
+    parent: HistorySnapshot | null;
     records: HistoryRecord[];
     blobs: Blob[];
+    usedColors: Color[];
 
-    constructor(blobs: Blob[]) {
+    constructor(blobs: Blob[], colors: Color[], parent?: HistorySnapshot) {
+        if (!parent) {
+            this.parent = null;
+        }
         this.records = [];
         this.blobs = blobs.map(blob => blob.clone());
+        this.usedColors = colors.map(color => color.clone());
     }
 
 }
@@ -43,7 +49,7 @@ export class History {
 
     addRecord(blobs: Blob[], x: number, y: number, color: Color) {
         if (this.areBlobesChangedSufficiently(this.lastBlobes, blobs)) {
-            const snapshot = new HistorySnapshot(blobs);
+            const snapshot = new HistorySnapshot(blobs, []);
 
             snapshot.records.push(new HistoryRecord(x, y, color));
 
@@ -53,7 +59,7 @@ export class History {
     }
 
     createNewSnapshot(blobs: Blob[]) {
-        this.snapshots.push(new HistorySnapshot(blobs));
+        this.snapshots.push(new HistorySnapshot(blobs, []));
     }
 
     areBlobesChangedSufficiently(aBlobes: Blob[], bBlobes: Blob[]) {

@@ -22,6 +22,48 @@ export class Color {
     }
 
     /**
+     * Hue value 0~360. Returns 0 when is gray.
+     */
+    getHue(): number {
+        const r = this.r;
+        const g = this.g;
+        const b = this.b;
+
+        const max = Math.max(r, Math.max(g, b));
+        const min = Math.min(r, Math.min(g, b));
+
+        if (max === min) {
+            // Gray
+            return 0;
+        }
+
+        let hue;
+        if (max === r) {
+            hue = (g - b) / (max - min);
+        }
+        else if (max === g) {
+            hue = 2 + (b - r) / (max - min);
+        }
+        else {
+            hue = 4 + (r - g) / (max - min);
+        }
+
+        hue *= 60;
+        if (hue < 0) {
+            hue += 360;
+        }
+
+        console.log(r, g, b, hue);
+        return hue;
+    }
+
+    isEqual(color: Color): boolean {
+        return this.r === color.r
+            && this.g === color.g
+            && this.b === color.b;
+    }
+
+    /**
      * Color distance to another color, in RGB space
      *
      * @param color another color
